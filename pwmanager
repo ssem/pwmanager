@@ -3,8 +3,7 @@
 TTYECHO="./ttyecho"
 
 function pwmaster {
-    echo "MASTER PASSWORD:"
-    read -s MASTER
+    read -p "MASTER PASSWORD: " -s MASTER
 }
 
 function pwtty {
@@ -22,8 +21,7 @@ function pwenc {
         return
     fi
     OUTPUT=$1
-    echo "PASSWORD:"
-    read -s PASSWORD
+    read -p "PASSWORD: " -s PASSWORD
     MSG=$(echo $PASSWORD | openssl enc -e -bf -a -salt -pass pass:$MASTER)
     MSG=$(echo $MSG | openssl enc -e -rc5-cbc -a -salt -pass pass:$MASTER)
     MSG=$(echo $MSG | openssl enc -e -aes-256-cbc -a -salt -pass pass:$MASTER)
