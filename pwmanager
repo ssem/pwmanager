@@ -1,0 +1,139 @@
+#!/bin/bash
+
+TTYECHO="./ttyecho"
+
+function pwmaster {
+    echo "MASTER PASSWORD:"
+    read -s MASTER
+}
+
+function pwtty {
+    ls /dev/pts/
+}
+
+function pwenc {
+    #   encrypt password file
+    #
+    #   OUTPUT = path to create encrypted password file
+    #   PASSWORD = password to encrypt
+
+    if [ $# -ne 1 ];then
+        echo -e "Usage: pwenc <output>\nex. pwenc passwd/passfile"
+        return
+    fi
+    OUTPUT=$1
+    echo "PASSWORD:"
+    read -s PASSWORD
+    MSG=$(echo $PASSWORD | openssl enc -e -bf -a -salt -pass pass:$MASTER)
+    MSG=$(echo $MSG | openssl enc -e -rc5-cbc -a -salt -pass pass:$MASTER)
+    MSG=$(echo $MSG | openssl enc -e -aes-256-cbc -a -salt -pass pass:$MASTER)
+    echo $MSG | openssl enc -e -des -a -salt -pass pass:$MASTER -out $OUTPUT
+    OUTPUT=""
+    PASSWORD=""
+}
+
+
+function pwdec {
+    #   decrypt password file
+    #
+    #   INPUT = path to encrypted password file created by pwenc
+    #   TTY = terminal to paste password, This is expected to be the tty #.
+    #         you can find the tty # of your terminal by typing tty
+
+    if [ $# -ne 2 ];then
+        echo -e "Usage: pwdec <input> <tty>\nex. pwdec passwd/passfile 9"
+        return
+    fi
+    INPUT=$1
+    TTY=$2
+    MSG=$(openssl enc -d -des -a -salt -pass pass:$MASTER -in $INPUT)
+    MSG=$(echo $MSG | openssl enc -d -aes-256-cbc -a -salt -pass pass:$MASTER)
+    MSG=$(echo $MSG | openssl enc -d -rc5-cbc -a -salt -pass pass:$MASTER)
+    MSG=$(echo $MSG | openssl enc -d -bf -a -salt -pass pass:$MASTER)
+    sudo $TTYECHO -n /dev/pts/$TTY $MSG
+    INPUT=""
+    TTY=""
+    MSG=""
+}
+
+function pwprint {
+    #   print decrypt password file
+    #
+    #   INPUT = path to encrypted password file created by pwenc
+
+    if [ $# -ne 1 ];then
+        echo -e "Usage: pwprint <input>\nex. pwprint passwd/passfile"
+        return
+    fi
+    INPUT=$1
+    TTY=$2
+    MSG=$(openssl enc -d -des -a -salt -pass pass:$MASTER -in $INPUT)
+    MSG=$(echo $MSG | openssl enc -d -aes-256-cbc -a -salt -pass pass:$MASTER)
+    MSG=$(echo $MSG | openssl enc -d -rc5-cbc -a -salt -pass pass:$MASTER)
+    MSG=$(echo $MSG | openssl enc -d -bf -a -salt -pass pass:$MASTER)
+    echo $MSG
+    INPUT=""
+    TTY=""
+    MSG=""
+}
+
+function pwexit {
+    MASTER=""
+    MSG=""
+    INPUT=""
+    TTY=""
+    OUTPUT=""
+    PASSWORD=""
+    PS1=$ORIGPS1
+    reset
+}
+
+function pwhelp {
+    echo -e "\npwhelp - print this message"
+    echo "pwmaster - set master password"
+    echo "pwtty    - print avaliable TTYs"
+    echo "pwenc    - encrypt password using master password"
+    echo "pwdec    - decrypt password and print in selected tty"
+    echo "pwprint  - decrypt password and print in current tty"
+    echo -e "pwexit   - exit\n"
+}
+
+
+script_name=$( basename $0 )
+this_script=$( basename ${BASH_SOURCE} )
+if [[ ${script_name} != ${this_script} ]] ; then
+    # FILE IS SOURCED RUN IN CURRENT TERMINAL
+    pwmaster
+    ORIGPS1=$PS1
+    PS1="[PWMANGER]$PS1"
+    clear
+    pwhelp
+else
+    if [ -z $MASTER ]; then
+        echo -e "\n\$MASTER MUST BE SET\n"
+        exit 1
+    fi
+    case $1 in
+        pwmaster*)
+            echo -e "\nUnable to set \$MASTER for you in this mode\n"
+            ;;
+        pwtty*)
+            pwtty
+            ;;
+        pwenc*)
+            pwenc ${@:2}
+            ;;
+        pwdec*)
+            pwdec ${@:2}
+            ;;
+        pwprint*)
+            pwprint ${@:2}
+            ;;
+        pwexit*)
+            echo -e "\nUnable to clear \$MASTER for you in this mode\n"
+            ;;
+        *)
+            pwhelp
+            ;;
+        esac
+fi
