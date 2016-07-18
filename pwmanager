@@ -97,9 +97,9 @@ function pwhelp {
 }
 
 
-script_name=$( basename $0 )
-this_script=$( basename ${BASH_SOURCE} )
-if [[ ${script_name} != ${this_script} ]] ; then
+arg_zero="#$0"
+this_script="#$( basename ${BASH_SOURCE} )"
+if [[ $0 != ${this_script} ]] ; then
     # FILE IS SOURCED RUN IN CURRENT TERMINAL
     pwmaster
     ORIGPS1=$PS1
